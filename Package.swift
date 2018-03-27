@@ -5,12 +5,6 @@ import PackageDescription
 
 let package = Package(
     name: "Sockets",
-    products: [
-        // Products define the executables and libraries produced by a package, and make them visible to other packages.
-        .library(
-            name: "Sockets",
-            targets: ["Sockets"]),
-    ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
@@ -21,9 +15,11 @@ let package = Package(
         .target(
             name: "Sockets",
             dependencies: []),
-        .target(
-            name: "Server",
-            dependencies: ["Sockets"]),
+        
+//        .target(
+//            name: "Server",
+//            dependencies: ["Sockets"]),
+        
         .testTarget(
             name: "SocketsTests",
             dependencies: ["Sockets"]),

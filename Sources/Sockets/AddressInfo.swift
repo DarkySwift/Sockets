@@ -2,44 +2,38 @@
 //  AddressInfo.swift
 //  SocketsPackageDescription
 //
-//  Created by Carlos Duclos on 3/25/18.
+//  Created by Carlos Duclos on 3/26/18.
 //
 
 import Foundation
 import Darwin
 
-public struct AddressInfo {
+struct AddressInfo: RawRepresentable {
+    typealias RawValue = UnsafeMutablePointer<addrinfo>?
     
-    var pointer: UnsafeMutablePointer<addrinfo>?
+    var rawValue: UnsafeMutablePointer<addrinfo>?
     
-    var firstAddrInfo: addrinfo {
-        return pointer!.pointee
+    init?(rawValue: RawValue) {
+        self.rawValue = rawValue
     }
     
-    init(port: String?) throws {
-        try self.init(host: nil, port: port)
-    }
-    
-    init(host: String?, port: String?, family: Int32 = AF_UNSPEC, socketType: Int32 = SOCK_STREAM, flags: Int32 = AI_PASSIVE) throws {
+    init(port: String) throws {
         var hints = addrinfo()
-        hints.ai_family = family;
-        hints.ai_socktype = socketType;
-        hints.ai_flags = flags;
+        hints.ai_family = AF_UNSPEC
+        hints.ai_socktype = SOCK_STREAM
+        hints.ai_flags = AI_PASSIVE
+        hints.ai_protocol = 0
         
-        try self.init(host: host, port: port, hints: &hints)
-    }
-    
-    init(host: String?, port: String?, hints: UnsafePointer<addrinfo>) throws {
-        var addressInfoPointer: UnsafeMutablePointer<addrinfo>? = nil
-        let result = getaddrinfo(host, port, hints, &addressInfoPointer)
+        var result: UnsafeMutablePointer<addrinfo>? = nil
         
-        guard result != -1 else { throw Socket.Error.GetAddrInfoFailed(code: result) }
-        guard addressInfoPointer != nil else { throw Socket.Error.NoAddressAvailable }
-        pointer = addressInfoPointer
-    }
-    
-    func withFirstAddrInfo<R>(first: (addrinfo) throws -> R) rethrows -> R {
-        return try first(pointer!.pointee)
+        let addrInfoResult = getaddrinfo(nil, port, &hints, &result)
+        if addrInfoResult != 0 {
+            throw Socket.Error.GetAddrInfoFailed(addrInfoResult)
+        }
+        
+        rawValue = result!
+        
+        print("addrInfoResult:", addrInfoResult)
     }
     
 }

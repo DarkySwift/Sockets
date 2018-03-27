@@ -1,30 +1,37 @@
 //
-//  Socket.swift
+//  ServerSocket.swift
 //  SocketsPackageDescription
 //
-//  Created by Carlos Duclos on 3/25/18.
+//  Created by Carlos Duclos on 3/26/18.
 //
 
-import Darwin
 import Foundation
 
-public struct Socket {
+struct Socket {
     
-    typealias Byte = Int8
-    
-    public let fileDescriptor: Int32
-    
-    public init(fileDescriptor: Int32) {
-        self.fileDescriptor = fileDescriptor
+    init(port: String) throws {
+        let addrInfo = try AddressInfo(port: port)
+        
     }
     
-    public init(addrInfo: addrinfo) throws {
-        let fileDescriptor = socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
-        guard fileDescriptor != -1 else {
-            throw Error.CreateFailed(code: errno)
+    init(addressInfo: AddressInfo) {
+        guard let addrInfo = addressInfo.rawValue?.pointee else {
+            fatalError("addrInfo cannot be nil")
         }
         
-        self.init(fileDescriptor: fileDescriptor)
+        var addr: UnsafeMutablePointer<addrinfo> = addrInfo.ai_next
+        repeat {
+            let sock = socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
+            print("sock", sock)
+            guard sock != -1 else { continue }
+            
+            let didBind = bind(sock, addrInfo.ai_addr, addrInfo.ai_addrlen)
+            print("didBind", didBind)
+            if didBind == 0 { break }
+            
+            close(sock)
+            addr = addrInfo.ai_next
+        } while (addr.pointee != nil)
     }
     
 }
@@ -32,29 +39,14 @@ public struct Socket {
 extension Socket {
     
     enum Error: Swift.Error, CustomStringConvertible {
-        
-        case GetAddrInfoFailed(code: errno_t)
-        case GetNameInfoFailed(code: errno_t)
-        case NoAddressAvailable
-        case GetNameInfoInvalidName
-        case CreateFailed(code: errno_t)
+        case GetAddrInfoFailed(Int32)
         
         var description: String {
             switch self {
-            case .NoAddressAvailable:
-                return "getaddrinfo() returned no address"
             case .GetAddrInfoFailed(let code):
-                return "getaddrinfo() failed: " + String(cString: gai_strerror(code))
-            case .GetNameInfoFailed(let code):
-                return "getnameinfo() failed " + String(cString: gai_strerror(code))
-            case .GetNameInfoInvalidName:
-                return "getnameinfo() invalid name"
-            case .CreateFailed(let code):
-                return "socket() failed " + String(cString: gai_strerror(code))
+                return "getaddrinfo() failed: " + String.init(cString: gai_strerror(code))
             }
         }
-        
-        
     }
     
 }
